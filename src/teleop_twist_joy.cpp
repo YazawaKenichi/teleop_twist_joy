@@ -349,6 +349,7 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
 // `/joy` を subscribe したらコールバックされる
 void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
 {
+    //! here
     // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "joyCallback called!");
     // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "TeleopTwistJoy::joyCallback")
     // RCLCPP_INFO(this->get_logger(), "TeleopTwistJoy::joyCallback");
