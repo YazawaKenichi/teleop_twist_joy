@@ -331,14 +331,17 @@ TeleopTwistJoy::~TeleopTwistJoy()
 double getVal(const sensor_msgs::msg::Joy::SharedPtr joy_msg, const std::map<std::string, int64_t>& axis_map,
               const std::map<std::string, double>& scale_map, const std::string& fieldname)
 {
-  if (axis_map.find(fieldname) == axis_map.end() ||
-      axis_map.at(fieldname) == -1L ||
-      scale_map.find(fieldname) == scale_map.end() ||
-      static_cast<int>(joy_msg->axes.size()) <= axis_map.at(fieldname))
+  if (axis_map.find(fieldname) == axis_map.end() || // fieldname が存在しないときは末尾の次のインデックスが返される。end() は末尾の次のインデックス
+      axis_map.at(fieldname) == -1L ||  // 値の参照？
+      scale_map.find(fieldname) == scale_map.end() ||   // fieldname が存在しないときは end()
+      static_cast<int>(joy_msg->axes.size()) <= axis_map.at(fieldname)) // 
   {
     return 0.0;
   }
 
+  // joy_msg->axes 中の fieldname の値を取得する
+  // 例えば axes = {"x" : 0.1, "y" : 0.2, "z" : 0.3}, fieldname = "y" なら joy_msg->axes[axis_map.at(fieldname)] = 0.2 を返す（のかも）
+  // scale_map.at(fieldname) 倍にして返すが、この値は teleop_twist_joy/config の axis_linear_turbo などで設定される
   return joy_msg->axes[axis_map.at(fieldname)] * scale_map.at(fieldname);
 }
 
@@ -355,12 +358,15 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
   cmd_vel_msg->angular.y = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "pitch");
   cmd_vel_msg->angular.x = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "roll");
 
+  RCLCPP_INFO(this->get_logger(), "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z)
+
   cmd_vel_pub->publish(std::move(cmd_vel_msg));
   sent_disable_msg = false;
 }
 
 void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
 {
+    RCLCPP_INFO(this->get_logger(), "TeleopTwistJoy::joyCallback");
   if (enable_turbo_button >= 0 &&
       static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
       joy_msg->buttons[enable_turbo_button])
