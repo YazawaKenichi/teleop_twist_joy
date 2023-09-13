@@ -74,27 +74,8 @@ struct TeleopTwistJoy::Impl
  */
 TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleop_twist_joy_node", options)
 {
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "soiyasoiya");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
-    RCLCPP_INFO(this->get_logger(), "==========");
+    ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "TeleopTwistJoy::TeleopTwistJoy")
+    // RCLCPP_INFO(this->get_logger(), "TeleopTwistJoy::TeleopTwistJoy");
   pimpl_ = new Impl;
 
   pimpl_->cmd_vel_pub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
@@ -358,7 +339,8 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
   cmd_vel_msg->angular.y = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "pitch");
   cmd_vel_msg->angular.x = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "roll");
 
-  RCLCPP_INFO(this->get_logger(), "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z)
+  // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z);
+  RCLCPP_INFO(this->get_logger(), "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z);
 
   cmd_vel_pub->publish(std::move(cmd_vel_msg));
   sent_disable_msg = false;
@@ -366,7 +348,9 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
 
 void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
 {
-    RCLCPP_INFO(this->get_logger(), "TeleopTwistJoy::joyCallback");
+    RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "joyCallback called!");
+    // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "TeleopTwistJoy::joyCallback")
+    // RCLCPP_INFO(this->get_logger(), "TeleopTwistJoy::joyCallback");
   if (enable_turbo_button >= 0 &&
       static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
       joy_msg->buttons[enable_turbo_button])
