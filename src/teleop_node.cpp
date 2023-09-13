@@ -33,28 +33,6 @@ int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
 
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("soiyasoiya\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-  printf("==========\n");
-
   rclcpp::spin(std::make_unique<teleop_twist_joy::TeleopTwistJoy>(rclcpp::NodeOptions()));
 
   rclcpp::shutdown();

@@ -74,6 +74,27 @@ struct TeleopTwistJoy::Impl
  */
 TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleop_twist_joy_node", options)
 {
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "soiyasoiya");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
+    RCLCPP_INFO(this->get_logger(), "==========");
   pimpl_ = new Impl;
 
   pimpl_->cmd_vel_pub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
