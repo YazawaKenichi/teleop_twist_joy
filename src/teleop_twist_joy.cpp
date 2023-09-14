@@ -77,8 +77,6 @@ struct TeleopTwistJoy::Impl
  */
 TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleop_twist_joy_node", options)
 {
-    // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "TeleopTwistJoy::TeleopTwistJoy");
-    RCLCPP_INFO(this->get_logger(), "TeleopTwistJoy::TeleopTwistJoy");
   pimpl_ = new Impl;
 
   pimpl_->cmd_vel_pub = this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
@@ -321,17 +319,14 @@ TeleopTwistJoy::~TeleopTwistJoy()
 double getVal(const sensor_msgs::msg::Joy::SharedPtr joy_msg, const std::map<std::string, int64_t>& axis_map,
               const std::map<std::string, double>& scale_map, const std::string& fieldname)
 {
-  if (axis_map.find(fieldname) == axis_map.end() || // fieldname が存在しないときは末尾の次のインデックスが返される。end() は末尾の次のインデックス
-      axis_map.at(fieldname) == -1L ||  // 値の参照？
-      scale_map.find(fieldname) == scale_map.end() ||   // fieldname が存在しないときは end()
+  if (axis_map.find(fieldname) == axis_map.end() ||
+      axis_map.at(fieldname) == -1L ||
+      scale_map.find(fieldname) == scale_map.end() ||
       static_cast<int>(joy_msg->axes.size()) <= axis_map.at(fieldname)) // 
   {
     return 0.0;
   }
 
-  // joy_msg->axes 中の fieldname の値を取得する
-  // 例えば axes = {"x" : 0.1, "y" : 0.2, "z" : 0.3}, fieldname = "y" なら joy_msg->axes[axis_map.at(fieldname)] = 0.2 を返す（のかも）
-  // scale_map.at(fieldname) 倍にして返すが、この値は teleop_twist_joy/config の axis_linear_turbo などで設定される
   return joy_msg->axes[axis_map.at(fieldname)] * scale_map.at(fieldname);
 }
 
@@ -352,24 +347,13 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
   sent_disable_msg = false;
 }
 
-// `/joy` を subscribe したらコールバックされる
 void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
 {
-    //! here
-    // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "joyCallback called!");
-    RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "toggle_turbo = %ld", toggle_turbo);
     if ((toggle_turbo >= 0 && static_cast<int>(joy_msg->buttons.size()) > toggle_turbo))
     {
-        //! 0 <= toggle_turbo < static_cast<int>(joy_msg->buttons.size())
         auto now = joy_msg->buttons[toggle_turbo];
-        /*
-        RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"),
-                "%d = ((%d = joy_msg->buttons[%ld]) - %ld)",
-                this->toggle_turbo_flag ? 1 : 0, joy_msg->buttons[toggle_turbo], toggle_turbo, this->toggle_turbo_buffer);
-        */
         if(now - this->toggle_turbo_buffer > 0)
         {
-            //! 押下された瞬間
             this->toggle_turbo_flag = this->toggle_turbo_flag ? false : true;
         }
         this->toggle_turbo_buffer = now;
@@ -378,14 +362,12 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
       static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
       joy_msg->buttons[enable_turbo_button]) || this->toggle_turbo_flag)
   {
-    // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "joyCallback turbo");
     sendCmdVelMsg(joy_msg, "turbo");
   }
   else if (!require_enable_button ||
-	   (static_cast<int>(joy_msg->buttons.size()) > enable_button &&
+          (static_cast<int>(joy_msg->buttons.size()) > enable_button &&
            joy_msg->buttons[enable_button]))
   {
-    // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "joyCallback normal");
     sendCmdVelMsg(joy_msg, "normal");
   }
   else
