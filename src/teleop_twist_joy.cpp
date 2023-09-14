@@ -87,7 +87,7 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
 
   pimpl_->require_enable_button = this->declare_parameter("require_enable_button", true);
 
-  pimpl_->toggle_turbo_flag = true;
+  pimpl_->toggle_turbo_flag = false;
 
   pimpl_->enable_button = this->declare_parameter("enable_button", 5);
 
@@ -357,16 +357,22 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
 {
     //! here
     // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "joyCallback called!");
+    RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "toggle_turbo = %ld", toggle_turbo);
     if ((toggle_turbo >= 0 && static_cast<int>(joy_msg->buttons.size()) > toggle_turbo))
     {
         //! 0 <= toggle_turbo < static_cast<int>(joy_msg->buttons.size())
         auto now = joy_msg->buttons[toggle_turbo];
+        /*
+        RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"),
+                "%d = ((%d = joy_msg->buttons[%ld]) - %ld)",
+                this->toggle_turbo_flag ? 1 : 0, joy_msg->buttons[toggle_turbo], toggle_turbo, this->toggle_turbo_buffer);
+        */
         if(now - this->toggle_turbo_buffer > 0)
         {
             //! 押下された瞬間
             this->toggle_turbo_flag = this->toggle_turbo_flag ? false : true;
         }
-        this->toggle_turbo_flag = now;
+        this->toggle_turbo_buffer = now;
     }
   if ((enable_turbo_button >= 0 &&
       static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
