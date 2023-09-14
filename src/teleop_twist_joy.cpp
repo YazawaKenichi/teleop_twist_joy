@@ -340,7 +340,7 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
   cmd_vel_msg->angular.x = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "roll");
 
   // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z);
-  RCLCPP_INFO(this->get_logger(), "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z);
+  // RCLCPP_INFO(this->get_logger(), "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z);
 
   cmd_vel_pub->publish(std::move(cmd_vel_msg));
   sent_disable_msg = false;
@@ -351,9 +351,22 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
     RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "joyCallback called!");
     // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "TeleopTwistJoy::joyCallback")
     // RCLCPP_INFO(this->get_logger(), "TeleopTwistJoy::joyCallback");
-  if (enable_turbo_button >= 0 &&
+  if (toggle_turbo >= 0 && static_cast<int>(joy_msg->buttons.size()) > toggle_turbo) // 0 <= toggle_turbo <= size()
+  {
+      //! toggle_turbo のボタン番号が正常なときのみ実行
+      //! 現在のボタンの状態を取得
+      auto now = joy_msg->buttons[toggle_turbo];
+      if(now - this->toggle_turbo_value_buf > 0)
+      {
+          //! ボタンが押された瞬間フラグ反転
+          this->toggle_turbo_flag = this->toggle_turbo_flag ? false : true;
+      }
+      //! 現在のボタンの状態を次回のために保存
+      this->toggle_turbo_value_buf = now;
+  }
+  if ((enable_turbo_button >= 0 &&
       static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
-      joy_msg->buttons[enable_turbo_button])
+      joy_msg->buttons[enable_turbo_button]) || this->toggle_turbo_flag)
   {
     sendCmdVelMsg(joy_msg, "turbo");
   }
