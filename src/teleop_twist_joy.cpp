@@ -57,8 +57,11 @@ struct TeleopTwistJoy::Impl
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub;
 
   bool require_enable_button;
+  bool toggle_turbo_flag;
   int64_t enable_button;
   int64_t enable_turbo_button;
+  int64_t toggle_turbo;
+  int64_t toggle_turbo_buffer;
 
   std::map<std::string, int64_t> axis_linear_map;
   std::map<std::string, std::map<std::string, double>> scale_linear_map;
@@ -84,9 +87,15 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
 
   pimpl_->require_enable_button = this->declare_parameter("require_enable_button", true);
 
+  pimpl_->toggle_turbo_flag = true;
+
   pimpl_->enable_button = this->declare_parameter("enable_button", 5);
 
   pimpl_->enable_turbo_button = this->declare_parameter("enable_turbo_button", -1);
+
+  pimpl_->toggle_turbo = this->declare_parameter("toggle_turbo", -1);
+
+  pimpl_->toggle_turbo_buffer = 0;
 
   std::map<std::string, int64_t> default_linear_map{
     {"x", 5L},
@@ -166,7 +175,7 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
   {
     static std::set<std::string> intparams = {"axis_linear.x", "axis_linear.y", "axis_linear.z",
                                               "axis_angular.yaw", "axis_angular.pitch", "axis_angular.roll",
-                                              "enable_button", "enable_turbo_button"};
+                                              "enable_button", "enable_turbo_button", "toggle_turbo"};
     static std::set<std::string> doubleparams = {"scale_linear.x", "scale_linear.y", "scale_linear.z",
                                                  "scale_linear_turbo.x", "scale_linear_turbo.y", "scale_linear_turbo.z",
                                                  "scale_angular.yaw", "scale_angular.pitch", "scale_angular.roll",
@@ -356,21 +365,17 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
 {
     //! here
     // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "joyCallback called!");
-    // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "TeleopTwistJoy::joyCallback")
-    // RCLCPP_INFO(this->get_logger(), "TeleopTwistJoy::joyCallback");
-  if (toggle_turbo >= 0 && static_cast<int>(joy_msg->buttons.size()) > toggle_turbo) // 0 <= toggle_turbo <= size()
-  {
-      //! toggle_turbo のボタン番号が正常なときのみ実行
-      //! 現在のボタンの状態を取得
-      auto now = joy_msg->buttons[toggle_turbo];
-      if(now - this->toggle_turbo_value_buf > 0)
-      {
-          //! ボタンが押された瞬間フラグ反転
-          this->toggle_turbo_flag = this->toggle_turbo_flag ? false : true;
-      }
-      //! 現在のボタンの状態を次回のために保存
-      this->toggle_turbo_value_buf = now;
-  }
+    if ((toggle_turbo >= 0 && static_cast<int>(joy_msg->buttons.size()) > toggle_turbo))
+    {
+        //! 0 <= toggle_turbo < static_cast<int>(joy_msg->buttons.size())
+        auto now = joy_msg->buttons[toggle_turbo];
+        if(now - this->toggle_turbo_buffer > 0)
+        {
+            //! 押下された瞬間
+            this->toggle_turbo_flag = this->toggle_turbo_flag ? false : true;
+        }
+        this->toggle_turbo_flag = now;
+    }
   if ((enable_turbo_button >= 0 &&
       static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
       joy_msg->buttons[enable_turbo_button]) || this->toggle_turbo_flag)
@@ -402,3 +407,4 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
 }  // namespace teleop_twist_joy
 
 RCLCPP_COMPONENTS_REGISTER_NODE(teleop_twist_joy::TeleopTwistJoy)
+
