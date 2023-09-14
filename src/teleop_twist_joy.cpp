@@ -348,14 +348,6 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
   cmd_vel_msg->angular.y = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "pitch");
   cmd_vel_msg->angular.x = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "roll");
 
-<<<<<<< HEAD
-  // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z);
-  // RCLCPP_INFO(this->get_logger(), "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->anguler.x, cmd_vel_msg->anguler.y, cmd_vel_msg->anguler.z);
-=======
-  // ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "YAZAWA Debug", "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->angular.x, cmd_vel_msg->angular.y, cmd_vel_msg->angular.z);
-  // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "{\n\t{%5.3f, %5.3f, %5.3f},\n\t{%5.3f, %5.3f, %5.3f}\n}", cmd_vel_msg->linear.x, cmd_vel_msg->linear.y, cmd_vel_msg->linear.z, cmd_vel_msg->angular.x, cmd_vel_msg->angular.y, cmd_vel_msg->angular.z);
->>>>>>> ee609d87c9dc23f1301519e9c183e89400c4c5d3
-
   cmd_vel_pub->publish(std::move(cmd_vel_msg));
   sent_disable_msg = false;
 }
