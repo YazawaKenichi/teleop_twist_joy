@@ -358,9 +358,14 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
         }
         this->toggle_turbo_buffer = now;
     }
-  if ((enable_turbo_button >= 0 &&
+    RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "B : %d, Flag : %d", now, this->toggle_turbo_flag ? 1 : 0)
+    if (toggle_turbo_flag)
+    {
+      sendCmdVelMsg(joy_msg, "turbo");
+    }
+  if (enable_turbo_button >= 0 &&
       static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
-      joy_msg->buttons[enable_turbo_button]) || this->toggle_turbo_flag)
+      joy_msg->buttons[enable_turbo_button])
   {
     sendCmdVelMsg(joy_msg, "turbo");
   }
