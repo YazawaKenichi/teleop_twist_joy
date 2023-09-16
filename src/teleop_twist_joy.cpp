@@ -319,6 +319,7 @@ TeleopTwistJoy::~TeleopTwistJoy()
 double getVal(const sensor_msgs::msg::Joy::SharedPtr joy_msg, const std::map<std::string, int64_t>& axis_map,
               const std::map<std::string, double>& scale_map, const std::string& fieldname)
 {
+    // fieldname が axis_map のどのインデックスにあるか 
   if (axis_map.find(fieldname) == axis_map.end() ||
       axis_map.at(fieldname) == -1L ||
       scale_map.find(fieldname) == scale_map.end() ||
@@ -351,21 +352,17 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
 {
     if ((toggle_turbo >= 0 && static_cast<int>(joy_msg->buttons.size()) > toggle_turbo))
     {
-        auto now = joy_msg->buttons[toggle_turbo];
-        if(now - this->toggle_turbo_buffer > 0)
+        auto b_button = joy_msg->buttons[toggle_turbo];
+        if(b_button - this->toggle_turbo_buffer > 0)
         {
             this->toggle_turbo_flag = this->toggle_turbo_flag ? false : true;
         }
-        this->toggle_turbo_buffer = now;
+        this->toggle_turbo_buffer = b_button;
     }
-    RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "B : %d, Flag : %d", now, this->toggle_turbo_flag ? 1 : 0)
-    if (toggle_turbo_flag)
-    {
-      sendCmdVelMsg(joy_msg, "turbo");
-    }
-  if (enable_turbo_button >= 0 &&
+    RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "B : %d, Flag : %d", joy_msg->buttons[toggle_turbo], this->toggle_turbo_flag ? 1 : 0);
+  if ((enable_turbo_button >= 0 &&
       static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
-      joy_msg->buttons[enable_turbo_button])
+      joy_msg->buttons[enable_turbo_button]) || this->toggle_turbo_flag)
   {
     sendCmdVelMsg(joy_msg, "turbo");
   }
@@ -377,6 +374,7 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
   }
   else
   {
+      // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "Stop The Robot : %d", !sent_disable_msg ? 1 : 0);
     // When enable button is released, immediately send a single no-motion command
     // in order to stop the robot.
     if (!sent_disable_msg)
