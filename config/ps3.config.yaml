@@ -6,6 +6,8 @@ teleop_twist_joy_node:
       x: 0.7
     scale_linear_turbo:
       x: 1.5
+    scale_linear_autorun:
+      x: 1.0
 
     axis_angular:
       yaw: 0
@@ -14,4 +16,4 @@ teleop_twist_joy_node:
 
     enable_button: 2  # L2 shoulder button
     enable_turbo_button: 0  # L1 shoulder button
-    toggle_turbo: 1
+    enable_autorun_button: 1
