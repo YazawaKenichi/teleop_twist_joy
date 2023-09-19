@@ -344,7 +344,9 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
   cmd_vel_msg->angular.x = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "roll");
 
   cmd_vel_pub->publish(std::move(cmd_vel_msg));
-  sent_disable_msg = false;
+  // これなにこれ
+  sent_disable_msg = this->toggle_turbo_flag;
+  RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "B : %d", this->toggle_turbo_flag ? 1 : 0);
 }
 
 void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
