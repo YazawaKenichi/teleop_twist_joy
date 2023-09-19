@@ -57,11 +57,11 @@ struct TeleopTwistJoy::Impl
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub;
 
   bool require_enable_button;
-  bool toggle_turbo_flag;
+  bool autorun_flag;
   int64_t enable_button;
   int64_t enable_turbo_button;
-  int64_t toggle_turbo;
-  int64_t toggle_turbo_buffer;
+  int64_t enable_autorun_button;
+  int64_t autorun_buffer;
 
   std::map<std::string, int64_t> axis_linear_map;
   std::map<std::string, std::map<std::string, double>> scale_linear_map;
@@ -85,15 +85,15 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
 
   pimpl_->require_enable_button = this->declare_parameter("require_enable_button", true);
 
-  pimpl_->toggle_turbo_flag = false;
+  pimpl_->autorun_flag = false;
 
   pimpl_->enable_button = this->declare_parameter("enable_button", 5);
 
   pimpl_->enable_turbo_button = this->declare_parameter("enable_turbo_button", -1);
 
-  pimpl_->toggle_turbo = this->declare_parameter("toggle_turbo", -1);
+  pimpl_->enable_autorun_button = this->declare_parameter("enable_autorun_button", -1);
 
-  pimpl_->toggle_turbo_buffer = 0;
+  pimpl_->autorun_buffer = 0;
 
   std::map<std::string, int64_t> default_linear_map{
     {"x", 5L},
@@ -127,6 +127,15 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
   this->declare_parameters("scale_linear_turbo", default_scale_linear_turbo_map);
   this->get_parameters("scale_linear_turbo", pimpl_->scale_linear_map["turbo"]);
 
+  // autorun scale
+  std::map<std::string, double> default_scale_linear_autorun_map{
+    {"x", 1.0},
+    {"y", 0.0},
+    {"z", 0.0},
+  };
+  this->declare_parameters("scale_linear_autorun", default_scale_linear_autorun_map);
+  this->get_parameters("scale_linear_autorun", pimpl_->scale_linear_map["autorun"]);
+
   std::map<std::string, double> default_scale_angular_normal_map{
     {"yaw", 0.5},
     {"pitch", 0.0},
@@ -142,6 +151,15 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
   };
   this->declare_parameters("scale_angular_turbo", default_scale_angular_turbo_map);
   this->get_parameters("scale_angular_turbo", pimpl_->scale_angular_map["turbo"]);
+
+  // autorun scale
+  std::map<std::string, double> default_scale_angular_autorun_map{
+    {"yaw", 1.0},
+    {"pitch", 0.0},
+    {"roll", 0.0},
+  };
+  this->declare_parameters("scale_angular_autorun", default_scale_angular_autorun_map);
+  this->get_parameters("scale_angular_autorun", pimpl_->scale_angular_map["autorun"]);
 
   ROS_INFO_COND_NAMED(pimpl_->require_enable_button, "TeleopTwistJoy",
       "Teleop enable button %" PRId64 ".", pimpl_->enable_button);
@@ -173,11 +191,13 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
   {
     static std::set<std::string> intparams = {"axis_linear.x", "axis_linear.y", "axis_linear.z",
                                               "axis_angular.yaw", "axis_angular.pitch", "axis_angular.roll",
-                                              "enable_button", "enable_turbo_button", "toggle_turbo"};
+                                              "enable_button", "enable_turbo_button", "enable_autorun_button"};
     static std::set<std::string> doubleparams = {"scale_linear.x", "scale_linear.y", "scale_linear.z",
                                                  "scale_linear_turbo.x", "scale_linear_turbo.y", "scale_linear_turbo.z",
+                                                 "scale_linear_autorun.x", "scale_linear_autorun.y", "scale_linear_autorun.z",
                                                  "scale_angular.yaw", "scale_angular.pitch", "scale_angular.roll",
-                                                 "scale_angular_turbo.yaw", "scale_angular_turbo.pitch", "scale_angular_turbo.roll"};
+                                                 "scale_angular_turbo.yaw", "scale_angular_turbo.pitch", "scale_angular_turbo.roll",
+                                                 "scale_angular_autorun.yaw", "scale_angular_autorun.pitch", "scale_angular_autorun.roll"};
     static std::set<std::string> boolparams = {"require_enable_button"};
     auto result = rcl_interfaces::msg::SetParametersResult();
     result.successful = true;
@@ -256,6 +276,18 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
       {
         this->pimpl_->axis_angular_map["roll"] = parameter.get_value<rclcpp::PARAMETER_INTEGER>();
       }
+      else if (parameter.get_name() == "scale_linear_autorun.x")
+      {
+        this->pimpl_->scale_linear_map["autorun"]["x"] = parameter.get_value<rclcpp::PARAMETER_DOUBLE>();
+      }
+      else if (parameter.get_name() == "scale_linear_autorun.y")
+      {
+        this->pimpl_->scale_linear_map["autorun"]["y"] = parameter.get_value<rclcpp::PARAMETER_DOUBLE>();
+      }
+      else if (parameter.get_name() == "scale_linear_autorun.z")
+      {
+        this->pimpl_->scale_linear_map["autorun"]["z"] = parameter.get_value<rclcpp::PARAMETER_DOUBLE>();
+      }
       else if (parameter.get_name() == "scale_linear_turbo.x")
       {
         this->pimpl_->scale_linear_map["turbo"]["x"] = parameter.get_value<rclcpp::PARAMETER_DOUBLE>();
@@ -279,6 +311,18 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
       else if (parameter.get_name() == "scale_linear.z")
       {
         this->pimpl_->scale_linear_map["normal"]["z"] = parameter.get_value<rclcpp::PARAMETER_DOUBLE>();
+      }
+      else if (parameter.get_name() == "scale_angular_autorun.yaw")
+      {
+        this->pimpl_->scale_angular_map["autorun"]["yaw"] = parameter.get_value<rclcpp::PARAMETER_DOUBLE>();
+      }
+      else if (parameter.get_name() == "scale_angular_autorun.pitch")
+      {
+        this->pimpl_->scale_angular_map["autorun"]["pitch"] = parameter.get_value<rclcpp::PARAMETER_DOUBLE>();
+      }
+      else if (parameter.get_name() == "scale_angular_autorun.roll")
+      {
+        this->pimpl_->scale_angular_map["autorun"]["roll"] = parameter.get_value<rclcpp::PARAMETER_DOUBLE>();
       }
       else if (parameter.get_name() == "scale_angular_turbo.yaw")
       {
@@ -345,50 +389,53 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
   cmd_vel_msg->angular.x = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "roll");
 
   cmd_vel_pub->publish(std::move(cmd_vel_msg));
-  // これなにこれ
-  sent_disable_msg = this->toggle_turbo_flag;
-  RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "B : %d", this->toggle_turbo_flag ? 1 : 0);
+  sent_disable_msg = false;
 }
 
 void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr joy_msg)
 {
-    if ((toggle_turbo >= 0 && static_cast<int>(joy_msg->buttons.size()) > toggle_turbo))
+    if(enable_autorun_button >= 0 && static_cast<int>(joy_msg->buttons.size()) > enable_autorun_button)
     {
-        auto b_button = joy_msg->buttons[toggle_turbo];
-        if(b_button - this->toggle_turbo_buffer > 0)
+        auto autorun_button = joy_msg->buttons[enable_autorun_button];
+        if(autorun_button - this->autorun_buffer > 0)
         {
-            this->toggle_turbo_flag = this->toggle_turbo_flag ? false : true;
+            this->autorun_flag = this->autorun_flag ? false : true;
         }
-        this->toggle_turbo_buffer = b_button;
+        this->autorun_buffer = autorun_button;
     }
-    RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "B : %d, Flag : %d", joy_msg->buttons[toggle_turbo], this->toggle_turbo_flag ? 1 : 0);
-  if ((enable_turbo_button >= 0 &&
-      static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
-      joy_msg->buttons[enable_turbo_button]) || this->toggle_turbo_flag)
-  {
-    sendCmdVelMsg(joy_msg, "turbo");
-  }
-  else if (!require_enable_button ||
-          (static_cast<int>(joy_msg->buttons.size()) > enable_button &&
-           joy_msg->buttons[enable_button]))
-  {
-    sendCmdVelMsg(joy_msg, "normal");
-  }
-  else
-  {
-      // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "Stop The Robot : %d", !sent_disable_msg ? 1 : 0);
-    // When enable button is released, immediately send a single no-motion command
-    // in order to stop the robot.
-    if (!sent_disable_msg)
-    {
-      // Initializes with zeros by default.
-      auto cmd_vel_msg = std::make_unique<geometry_msgs::msg::Twist>();
-      cmd_vel_pub->publish(std::move(cmd_vel_msg));
-      sent_disable_msg = true;
-    }
-  }
-}
 
+    RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "B : %d, Flag : %d, sent_disable_msg : %d", joy_msg->buttons[enable_autorun_button], this->autorun_flag ? 1 : 0, sent_disable_msg ? 1 : 0);
+
+    if(autorun_flag)
+    {
+        sendCmdVelMsg(joy_msg, "autorun");
+    }
+    else if(enable_turbo_button >= 0 &&
+                static_cast<int>(joy_msg->buttons.size()) > enable_turbo_button &&
+                joy_msg->buttons[enable_turbo_button])
+    {
+        sendCmdVelMsg(joy_msg, "turbo");
+    }
+    else if (!require_enable_button ||
+            (static_cast<int>(joy_msg->buttons.size()) > enable_button &&
+             joy_msg->buttons[enable_button]))
+    {
+        sendCmdVelMsg(joy_msg, "normal");
+    }
+    else
+    {
+        // RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "Stop The Robot : %d", !sent_disable_msg ? 1 : 0);
+        // When enable button is released, immediately send a single no-motion command
+        // in order to stop the robot.
+        if (!sent_disable_msg)
+        {
+            // Initializes with zeros by default.
+            auto cmd_vel_msg = std::make_unique<geometry_msgs::msg::Twist>();
+            cmd_vel_pub->publish(std::move(cmd_vel_msg));
+            sent_disable_msg = true;
+        }
+    }
+}
 }  // namespace teleop_twist_joy
 
 RCLCPP_COMPONENTS_REGISTER_NODE(teleop_twist_joy::TeleopTwistJoy)
