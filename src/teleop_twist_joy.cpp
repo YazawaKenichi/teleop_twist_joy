@@ -252,6 +252,10 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
       {
         this->pimpl_->enable_turbo_button = parameter.get_value<rclcpp::PARAMETER_INTEGER>();
       }
+      else if (parameter.get_name() == "enable_autorun_button")
+      {
+          this->pimpl_->enable_autorun_button = parameter.get_value<rclcpp::PARAMETER_INTEGER>();
+      }
       else if (parameter.get_name() == "axis_linear.x")
       {
         this->pimpl_->axis_linear_map["x"] = parameter.get_value<rclcpp::PARAMETER_INTEGER>();
