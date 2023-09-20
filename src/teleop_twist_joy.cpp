@@ -67,7 +67,10 @@ struct TeleopTwistJoy::Impl
   std::map<std::string, std::map<std::string, double>> scale_linear_map;
 
   std::map<std::string, int64_t> axis_angular_map;
+  std::map<std::string, int64_t> axis_angular_adjustment_map;
   std::map<std::string, std::map<std::string, double>> scale_angular_map;
+
+  float_t speed_x_max;
 
   bool sent_disable_msg;
 };
@@ -110,6 +113,14 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
   };
   this->declare_parameters("axis_angular", default_angular_map);
   this->get_parameters("axis_angular", pimpl_->axis_angular_map);
+
+  std::map<std::string, int64_t> default_angular_adjustment_map{
+      {"yaw", 3L},
+          {"pitch", -1L},
+          {"roll", -1L},
+  };
+  this->declare_parameters("axis_angular_adjustment", default_angular_adjustment_map);
+  this->get_parameters("axis_angular_adjustment", pimpl_->axis_angular_adjustment_map);
 
   std::map<std::string, double> default_scale_linear_normal_map{
     {"x", 0.5},
@@ -184,6 +195,8 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
       "Turbo for angular axis %s is scale %f.", it->first.c_str(), pimpl_->scale_angular_map["turbo"][it->first]);
   }
 
+  pimpl_->speed_x_max = 0;
+
   pimpl_->sent_disable_msg = false;
 
   auto param_callback =
@@ -191,6 +204,7 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
   {
     static std::set<std::string> intparams = {"axis_linear.x", "axis_linear.y", "axis_linear.z",
                                               "axis_angular.yaw", "axis_angular.pitch", "axis_angular.roll",
+                                              "axis_angular_adjustment.yaw", "axis_angular_adjustment.pitch", "axis_angular_adjustment.roll",
                                               "enable_button", "enable_turbo_button", "enable_autorun_button"};
     static std::set<std::string> doubleparams = {"scale_linear.x", "scale_linear.y", "scale_linear.z",
                                                  "scale_linear_turbo.x", "scale_linear_turbo.y", "scale_linear_turbo.z",
@@ -267,6 +281,18 @@ TeleopTwistJoy::TeleopTwistJoy(const rclcpp::NodeOptions& options) : Node("teleo
       else if (parameter.get_name() == "axis_linear.z")
       {
         this->pimpl_->axis_linear_map["z"] = parameter.get_value<rclcpp::PARAMETER_INTEGER>();
+      }
+      else if (parameter.get_name() == "axis_angular_adjustment.yaw")
+      {
+          this->pimpl_->axis_angular_adjustment_map["yaw"] = parameter.get_value<rclcpp::PARAMETER_INTEGER>();
+      }
+      else if (parameter.get_name() == "axis_angular_adjustment.pitch")
+      {
+          this->pimpl_->axis_angular_adjustment_map["pitch"] = parameter.get_value<rclcpp::PARAMETER_INTEGER>();
+      }
+      else if (parameter.get_name() == "axis_angular_adjustment.roll")
+      {
+          this->pimpl_->axis_angular_adjustment_map["roll"] = parameter.get_value<rclcpp::PARAMETER_INTEGER>();
       }
       else if (parameter.get_name() == "axis_angular.yaw")
       {
@@ -384,11 +410,24 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
 {
   // Initializes with zeros by default.
   auto cmd_vel_msg = std::make_unique<geometry_msgs::msg::Twist>();
+  float_t speed_x_temporary = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "x");
 
-  cmd_vel_msg->linear.x = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "x");
+  if(this->autorun_flag)
+  {
+      // 現在の値が過去最大の時値を更新
+      this->speed_x_max = speed_x_temporary > this->speed_x_max ? speed_x_temporary : this->speed_x_max;
+      cmd_vel_msg->linear.x = this->speed_x_max;
+      cmd_vel_msg->angular.z = getVal(joy_msg, axis_angular_adjustment_map, scale_angular_map[which_map], "yaw");
+  }
+  else
+  {
+      this->speed_x_max = 0;
+      cmd_vel_msg->linear.x = speed_x_temporary;
+      cmd_vel_msg->angular.z = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "yaw");
+  }
+
   cmd_vel_msg->linear.y = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "y");
   cmd_vel_msg->linear.z = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "z");
-  cmd_vel_msg->angular.z = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "yaw");
   cmd_vel_msg->angular.y = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "pitch");
   cmd_vel_msg->angular.x = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "roll");
 
