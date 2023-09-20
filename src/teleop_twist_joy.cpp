@@ -411,19 +411,38 @@ void TeleopTwistJoy::Impl::sendCmdVelMsg(const sensor_msgs::msg::Joy::SharedPtr 
   // Initializes with zeros by default.
   auto cmd_vel_msg = std::make_unique<geometry_msgs::msg::Twist>();
   float_t speed_x_temporary = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "x");
+  float_t speed_yaw_temporary = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "yaw");
 
   if(this->autorun_flag)
   {
-      // 現在の値が過去最大の時値を更新
-      this->speed_x_max = speed_x_temporary > this->speed_x_max ? speed_x_temporary : this->speed_x_max;
+      // 直進方向の値を更新
+      float_t limit;
+      // x の値の最大値を決定
+      limit = 1.0f * scale_linear_map["autorun"]["x"];
+      // 十字キーの値を / 10 してから足す
+      this->speed_x_max += (float_t) speed_x_temporary / 10;
+      // 出力値が最大値を超えないように制限
+      this->speed_x_max = this->speed_x_max >  limit ?  limit : this->speed_x_max;
+      this->speed_x_max = this->speed_x_max < -limit ? -limit : this->speed_x_max;
+      // 出力値の決定
       cmd_vel_msg->linear.x = this->speed_x_max;
-      cmd_vel_msg->angular.z = getVal(joy_msg, axis_angular_adjustment_map, scale_angular_map[which_map], "yaw");
+
+      // 角度方向の値を更新
+      float_t joystick = getVal(joy_msg, axis_angular_adjustment_map, scale_angular_map[which_map], "yaw");
+      // Joystick の値と十字キーの値を加算
+      float_t sum = (speed_yaw_temporary + joystick);
+      // yaw の値の最大値を決定 ( 十字キーの最大値で制限 )
+      limit = 1.0f * scale_angular_map["autorun"]["yaw"];
+      // Joystick と十字キーを加算した値が最大値の範囲に収まるように制限
+      sum = sum >  limit ?  limit : sum;
+      sum = sum < -limit ? -limit : sum;
+      // 出力値の決定
+      cmd_vel_msg->angular.z = sum;
   }
   else
   {
-      this->speed_x_max = 0;
       cmd_vel_msg->linear.x = speed_x_temporary;
-      cmd_vel_msg->angular.z = getVal(joy_msg, axis_angular_map, scale_angular_map[which_map], "yaw");
+      cmd_vel_msg->angular.z = speed_yaw_temporary;
   }
 
   cmd_vel_msg->linear.y = getVal(joy_msg, axis_linear_map, scale_linear_map[which_map], "y");
@@ -448,6 +467,12 @@ void TeleopTwistJoy::Impl::joyCallback(const sensor_msgs::msg::Joy::SharedPtr jo
     }
 
     RCLCPP_INFO(rclcpp::get_logger("joy_callback_logger"), "B : %d, Flag : %d, sent_disable_msg : %d", joy_msg->buttons[enable_autorun_button], this->autorun_flag ? 1 : 0, sent_disable_msg ? 1 : 0);
+
+    if(!autorun_flag)
+    {
+        // 直進速度をリセット
+        this->speed_x_max = 0;
+    }
 
     if(autorun_flag)
     {
